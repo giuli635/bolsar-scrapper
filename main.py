@@ -1,68 +1,120 @@
 import os
 import traceback
+import csv
+import argparse
 from datetime import date
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.common import exceptions
 
 CURRENT_DATE = date.today()
-EXECUTION_DIRECTORY = os.getcwd()
-CACHE_DIRECTORY = "cache"
-DOWNLOAD_DIRECTORY = "download"
-# TODO: check if data directory exists
 
-def organizeClosingData(source, destination, date, titles):
-    os.mkdir(os.path.join(destination, date))
+parser = argparse.ArgumentParser(
+    prog="bolsar-scrapper",
+    description="A basic web scrapper for bolsar.info",
+    epilog="Made by Giuliano Taormina",
+)
 
-    files = os.listdir(source)
-    for i in range(0, len(files)):
-        if (files[i].endswith(".csv")):
-            os.rename(os.path.join(source, files[i]),
-                      os.path.join(destination, date, titles[i] + ".csv"))
+parser.add_argument(
+    "-b",
+    dest="browserBinary",
+    action="store",
+    help="Specifies the browser binary location",
+)
+parser.add_argument(
+    "-d", dest="directory", action="store", help="Specifies the working directory"
+)
+args = parser.parse_args()
+
+directory = args.directory if args.directory else ""
+browserBinary = args.browserBinary
+
+
+def organizeClosingData(directory, date, browser):
+    workingDirectory = os.path.join(directory, date)
+
+    titles = getClosingData(date, browser)
+
+    if os.path.exists(workingDirectory):
+        files = os.listdir(workingDirectory)
+        for i in range(0, len(files)):
+            if files[i].endswith(".csv"):
+                os.rename(
+                    os.path.join(workingDirectory, files[i]),
+                    os.path.join(workingDirectory, titles[i] + ".csv"),
+                )
+
+    negociatedAmounts = list(zip(*getNegotiatedAmounts(browser)))
+
+    with open(
+        os.path.join(workingDirectory, "montos_negociados.csv"), "w", encoding="utf-8"
+    ) as file:
+        writer = csv.writer(file)
+        writer.writerows(negociatedAmounts[0:2])
+
+
+def checkIfDataExists(directory, date):
+    return os.path.exists(os.path.join(directory, date))
+
 
 def getNegotiatedAmounts(browser):
     negociatedAmounts = []
-    
+    negociatedAmountsTable = browser.find_element(By.ID, "tabla")
+    negociatedAmountsTableBody = negociatedAmountsTable.find_element(
+        By.TAG_NAME, "tbody"
+    )
+    negociatedAmountsRows = negociatedAmountsTableBody.find_elements(By.TAG_NAME, "tr")
+
+    for row in negociatedAmountsRows:
+        rowContent = []
+        for cell in row.find_elements(By.TAG_NAME, "td"):
+            rowContent.append(cell.text)
+        negociatedAmounts.append(rowContent)
+
     return negociatedAmounts
+
 
 def getClosingData(date, browser):
     browser.get(f"https://bolsar.info/cierre/cierre_{date}.html")
 
-    # titles = browser.find_elements(By.CSS_SELECTOR, "span.mercados")
-    # titles = list(map(lambda x : x.text.lower().replace(" ", "_"), titles))
-    # titles = titles[titles.index("paneles") + 1:]
+    titles = browser.find_elements(By.CSS_SELECTOR, "span.mercados")
+    titles = list(map(lambda x: x.text.lower().replace(" ", "_"), titles))
+    titles = titles[titles.index("paneles") + 1 :]
 
-    # buttons = browser.find_elements(By.CLASS_NAME, "buttons-csv")
-    # for button in buttons:
-    #     button.click()
-
-    montosNegociados = []
-    tablaMontosNegociados = browser.find_element(By.ID, "tabla")
-    cuerpoTablaMontosNegociados = tablaMontosNegociados.find_element(By.TAG_NAME, "tbody")
-    filasMontosNegociados = cuerpoTablaMontosNegociados.find_elements(By.TAG_NAME, "tr")
-
-    for row in filasMontosNegociados:
-        montosNegociados.append(row.text.split(" "))
-
-    print(montosNegociados)
+    buttons = browser.find_elements(By.CLASS_NAME, "buttons-csv")
+    for button in buttons:
+        button.click()
 
     return titles
 
+
 if __name__ == "__main__":
-    try:
-        options = webdriver.FirefoxOptions()
-        options.set_preference("browser.download.folderList", 2)
-        options.set_preference("browser.download.manager.showWhenStarting", False)
-        options.set_preference("browser.download.dir", os.path.join(EXECUTION_DIRECTORY,
-                                                                    CACHE_DIRECTORY,
-                                                                    DOWNLOAD_DIRECTORY))
-        options.headless = True
+    browser = None
 
-        browser = webdriver.Firefox(options = options)
+    if not directory.startswith("/"):
+        directory = os.path.join(os.getcwd(), directory)
 
-        organizeClosingData(os.path.join(EXECUTION_DIRECTORY, CACHE_DIRECTORY, DOWNLOAD_DIRECTORY),
-                            os.path.join(EXECUTION_DIRECTORY, CACHE_DIRECTORY), "2022-10-07",
-                            getClosingData("2022-10-07", browser))
-    except Exception:
-        traceback.print_exc()
-    finally:
-        browser.close()
+    if not checkIfDataExists(directory, "2022-10-07"):
+        try:
+            options = webdriver.FirefoxOptions()
+            options.set_preference("browser.download.folderList", 2)
+            options.set_preference("browser.download.manager.showWhenStarting", False)
+            options.set_preference(
+                "browser.download.dir",
+                os.path.join(directory, "2022-10-07"),
+            )
+            if browserBinary:
+                options.binary_location = browserBinary
+
+            options.headless = True
+
+            browser = webdriver.Firefox(options=options)
+
+            organizeClosingData(directory, "2022-10-07", browser)
+        except exceptions.SessionNotCreatedException:
+            print("Browser binary not found")
+        except Exception:
+            traceback.print_exc()
+        finally:
+            if browser:
+                browser.close()
