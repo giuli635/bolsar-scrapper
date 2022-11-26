@@ -1,5 +1,7 @@
 #! /bin/bash
 
+# TODO: install firefox
+
 install_pip=0
 
 detectOS(){
