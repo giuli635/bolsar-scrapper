@@ -1,0 +1,92 @@
+#!/usr/bin/env python
+
+import argparse
+import tempfile
+from bolsar_scrapper import *
+from datetime import date
+
+# implement get_stocks_data
+
+def __create_parser():
+    parser = argparse.ArgumentParser(
+        prog="bolsar-scrapper",
+        description="A basic web scrapper for bolsar.info",
+        epilog="Made by Giuliano Taormina",
+    )
+
+    parser.add_argument(
+        "-b",
+        dest="browser_binary",
+        action="store",
+        default=None,
+        help="Sets the browser binary location",
+    )
+
+    parser.add_argument(
+        "-d",
+        dest="directory",
+        action="store",
+        default="",
+        help="Sets the working directory",
+    )
+
+    parser.add_argument(
+        "-c",
+        dest="dates",
+        action="store",
+        help="Gets the closing data of the specified date(s)",
+        nargs="+",
+    )
+
+    parser.add_argument(
+        "-n",
+        dest="negotiated_amounts",
+        action="store_true",
+        default=False,
+        help="If getting the closing data, includes the negotiated amounts of the day",
+    )
+
+    parser.add_argument(
+        "-a",
+        dest="stocks",
+        action="store",
+        help="Gets basic data of the specified stocks",
+        nargs="+",
+    )
+
+    return parser
+
+
+if __name__ == "__main__":
+    parser = __create_parser()
+    args = parser.parse_args()
+    no_args = True
+
+    with tempfile.TemporaryDirectory() as temp_directory:
+        try:
+            browser = create_browser(temp_directory, args.browser_binary)
+            if args.dates:
+                for day in args.dates:
+                    get_and_organize_closing_data(
+                        browser,
+                        temp_directory,
+                        args.directory,
+                        day,
+                        args.negotiated_amounts,
+                    )
+                no_args = False
+            if args.stocks:
+                for stock in args.stocks:
+                    get_stock_data(browser, stock)
+                no_args = False
+            if no_args:
+                get_and_organize_closing_data(
+                    browser,
+                    temp_directory,
+                    args.directory,
+                    date.today().strftime("%Y-%m-%d"),
+                    args.negotiated_amounts,
+                )
+        finally:
+            if browser:
+                browser.close()
