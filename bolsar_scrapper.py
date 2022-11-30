@@ -100,7 +100,7 @@ def get_stock_data(browser, stock):
     for row in rows:
         if "EMISOR" in row:
             issuer = row.split(" ")[1:]
-            issuer = " ".join(*issuer)
+            issuer = " ".join(issuer)
         elif "VALOR NOMINAL" in row:
             nominal_value = row.split(" ")[2]
             nominal_value = float(nominal_value.replace(",", "."))
