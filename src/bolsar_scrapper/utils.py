@@ -1,7 +1,9 @@
 import csv
 import os
+from .exceptions import *
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.common.exceptions import *
 from shutil import move
 from typing import List, Tuple
 
@@ -16,18 +18,15 @@ def organize_closing_data(
         dest_directory -- directory where the files are going to be moved to.
         titles -- list of new names for the files.
     """
-    if os.path.exists(source_directory):
-        working_directory = __create_directory(dest_directory)
-        files = os.listdir(source_directory)
-        files.sort(key=lambda str: (len(str), str))
-        for i in range(0, len(files)):
-            if files[i].endswith(".csv"):
-                move(
-                    os.path.join(source_directory, files[i]),
-                    os.path.join(working_directory, titles[i] + ".csv"),
-                )
-    else:
-        raise FileNotFoundError("Source directory doesn't exists")
+    working_directory = __create_directory(dest_directory)
+    files = os.listdir(source_directory)
+    files.sort(key=lambda str: (len(str), str))
+    for i in range(0, len(files)):
+        if files[i].endswith(".csv"):
+            move(
+                os.path.join(source_directory, files[i]),
+                os.path.join(working_directory, titles[i] + ".csv"),
+            )
 
 
 def get_negotiated_amounts(browser: webdriver.Firefox) -> List[list]:
@@ -57,9 +56,7 @@ def get_negotiated_amounts(browser: webdriver.Firefox) -> List[list]:
     return negotiated_amounts
 
 
-def negotiated_amounts_to_csv(
-    directory: str, negotiated_amounts: List[list]
-) -> None:
+def negotiated_amounts_to_csv(directory: str, negotiated_amounts: List[list]) -> None:
     """Transforms the negotiated amounts matrix to a CSV.
 
     Arguments:
@@ -83,15 +80,15 @@ def get_closing_data(browser: webdriver.Firefox) -> List[str]:
         List of the titles corresponding to the information displayed in the CSVs or empty list if an error ocurred.
     """
     titles = browser.find_elements(By.CSS_SELECTOR, "span.mercados")
+
     if titles:
         titles = list(map(lambda x: x.text.lower().replace(" ", "_"), titles))
         titles = titles[titles.index("paneles") + 1 :]
-
         buttons = browser.find_elements(By.CLASS_NAME, "buttons-csv")
         for button in buttons:
             button.click()
     else:
-        print("Could not find the searched elements")
+        raise NoSuchElementException("Unable to locate the closing data.")
 
     return titles
 
@@ -115,28 +112,22 @@ def get_and_organize_closing_data(
     directory = os.path.join(dest_directory, date)
     if not os.path.exists(directory):
         browser.get(f"https://bolsar.info/cierre/cierre_{date}.html")
-        titles = get_closing_data(browser)
-        if titles:
+        try:
+            titles = get_closing_data(browser)
             organize_closing_data(source_directory, directory, titles)
             if negotiated_amounts:
-                negotiated_amounts_to_csv(
-                    directory, get_negotiated_amounts(browser)
-                )
-        else:
-            print(
-                "Check the entered dates, the resultant URL is probably",
-                "wrong or the stock wasn't open that day",
+                negotiated_amounts_to_csv(directory, get_negotiated_amounts(browser))
+        except NoSuchElementException:
+            raise WrongDateException(
+                "Check the entered dates, the resultant URL is probably wrong or the stock wasn't open that day",
             )
     else:
-        print(
-            f"There is already a directory for the specified date ({date}),",
-            "check the content",
+        raise FileExistsError(
+            f"There is already a directory for the specified date ({date}), check the content",
         )
 
 
-def get_stock_data(
-    browser: webdriver.Firefox, stock: str
-) -> Tuple[str, float]:
+def get_stock_data(browser: webdriver.Firefox, stock: str) -> Tuple[str, float]:
     """Obtains the name of the company that issues the specified stock along with its nominal value.
 
     Arguments:
@@ -184,15 +175,13 @@ def create_browser(
     if browser_binary:
         options.binary_location = browser_binary
     options.headless = True
-    browser = webdriver.Firefox(
-        options=options, service_log_path=os.devnull
-    )
+    browser = webdriver.Firefox(options=options, service_log_path=os.devnull)
 
     return browser
 
 
 def __create_directory(directory: str) -> str:
-    """Creates a directory and returns its absolute path.
+    """Creates a directory if it's not created and returns its absolute path.
 
     Arguments:
         directory -- directory to create.
