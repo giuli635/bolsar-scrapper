@@ -1,2 +1,0 @@
-class WrongDateException(Exception):
-    pass

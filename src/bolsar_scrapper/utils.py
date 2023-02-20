@@ -1,6 +1,5 @@
 import csv
 import os
-from .exceptions import *
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import *
@@ -118,9 +117,10 @@ def get_and_organize_closing_data(
             if negotiated_amounts:
                 negotiated_amounts_to_csv(directory, get_negotiated_amounts(browser))
         except NoSuchElementException:
-            raise WrongDateException(
+            print (
                 "Check the entered dates, the resultant URL is probably wrong or the stock wasn't open that day",
             )
+            raise
     else:
         raise FileExistsError(
             f"There is already a directory for the specified date ({date}), check the content",

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bolsar_scrapper"
-version = "0.0.1"
+version = "0.0.2"
 authors = [
   { name="Giuliano Taormina", email="giulitao635@gmail.com" },
 ]

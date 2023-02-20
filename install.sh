@@ -2,6 +2,17 @@
 
 system_dependencies=("firefox" "python" "python-pip" "geckodriver")
 
+venv_directory="$1"
+
+if [[ "$venv_directory" ]]; then
+    if [[ ! -d "$venv_directory" ]]; then
+        echo "Invalid directory for the virtual environment"
+        exit 1
+    fi
+else
+    venv_directory="."
+fi
+
 function detectOS(){
     local os=""
     if [[ "$OSTYPE" == "linux-gnu" ]]; then
@@ -34,8 +45,8 @@ if [[ $(detectOS) == "Arch Linux" ]]; then
         sudo pacman -S ${dependencies_to_install[@]}
     fi
     echo "Creating virtual environment for python and installing the package dependencies..."
-    python -m venv venv
-    source ./venv/bin/activate
+    python -m venv "$venv_directory/venv"
+    source "$venv_directory/venv/bin/activate"
     pip install build
     pip install -r requeriments.txt
     python -m build

@@ -3,6 +3,7 @@
 import argparse
 import tempfile
 from bolsar_scrapper import *
+from selenium.common.exceptions import NoSuchElementException
 from datetime import date
 
 
@@ -90,6 +91,10 @@ if __name__ == "__main__":
                     date.today().strftime("%Y-%m-%d"),
                     args.negotiated_amounts,
                 )
+        except NoSuchElementException:
+            print(
+                "Unable to find the requested data, check the entered dates, the resultant URL is probably wrong or the stock wasn't open that day"
+            )
         finally:
             if browser:
-                browser.close()
+                browser.quit()
