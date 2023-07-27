@@ -166,9 +166,11 @@ def get_stocks_data(
             info.append(get_stock_data(stock, session))
         except ConnectionError:
             session.close()
+            os.remove(session.verify)
             session = create_stock_data_session(jsessionid)
             info.append(get_stock_data(stock, session))
     session.close()
+    os.remove(session.verify)
 
     return info
 
@@ -243,6 +245,12 @@ def create_stock_data_session(jsessionid):
 
 
 def get_bymadata_ssl_certificate():
+    """Creates a file in the temporary folder of the filesystem
+    with the SSL certificate chain of the open.bymadata.com.ar website.
+
+    Returns:
+        The path of the file containing the chain of certificates.
+    """
     certificate = tempfile.NamedTemporaryFile("w+t", delete=False, suffix=".pem")
     certificate.write(
         chain_to_string(walk_the_chain(get_certificate("open.bymadata.com.ar", 443)))
