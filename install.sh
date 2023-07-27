@@ -1,6 +1,8 @@
 #! /bin/bash
 
-system_dependencies=("firefox" "python" "python-pip" "geckodriver")
+# TODO: extend the installation to other contexts
+
+system_dependencies=("firefox" "python" "geckodriver")
 
 venv_directory="$1"
 
@@ -45,12 +47,9 @@ if [[ $(detectOS) == "Arch Linux" ]]; then
         sudo pacman -S ${dependencies_to_install[@]}
     fi
     echo "Creating virtual environment for python and installing the package dependencies..."
-    python -m venv "$venv_directory/venv"
-    source "$venv_directory/venv/bin/activate"
-    pip install build
-    pip install -r requeriments.txt
-    python -m build
-    pip install "./dist/bolsar_scrapper-$(grep version pyproject.toml | grep -o '.\..\..')-py3-none-any.whl"
+    python -m venv "$venv_directory/.venv"
+    source "$venv_directory/.venv/bin/activate"
+    pip install .
     echo "Done."
 else
     echo "Unsupported OS, you'll have to do it manually :("

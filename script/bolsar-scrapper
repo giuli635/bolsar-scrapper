@@ -6,6 +6,7 @@ from bolsar_scrapper import *
 from selenium.common.exceptions import NoSuchElementException
 from datetime import date
 
+# TODO: update the code of the script to reflect the changes in the library
 
 def __create_parser():
     parser = argparse.ArgumentParser(
@@ -81,7 +82,7 @@ if __name__ == "__main__":
                 no_args = False
             if args.stocks:
                 for stock in args.stocks:
-                    get_stock_data(browser, stock)
+                    print(get_stock_data(browser, stock))
                 no_args = False
             if no_args:
                 get_and_organize_closing_data(
@@ -92,9 +93,7 @@ if __name__ == "__main__":
                     args.negotiated_amounts,
                 )
         except NoSuchElementException:
-            print(
-                "Unable to find the requested data, check the entered dates, the resultant URL is probably wrong or the stock wasn't open that day"
-            )
+            pass
         finally:
             if browser:
                 browser.quit()
