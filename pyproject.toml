@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "bolsar_scrapper"
-version = "0.1.0"
+version = "0.1.1"
 description = "A simple program to retrieve information from bolsar website."
 authors = ["giuli635 <giulitao635@gmail.com>"]
 license = "MIT"

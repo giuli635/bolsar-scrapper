@@ -3,12 +3,12 @@ import json
 import os
 import tempfile
 from shutil import move
-from typing import Dict, List
+from typing import Dict, List, Set
 
 from get_certificate_chain import chain_to_string, get_certificate, walk_the_chain
 from requests import ConnectionError, Session
 from selenium import webdriver
-from selenium.common.exceptions import *
+from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.service import Service
 
@@ -139,7 +139,7 @@ def get_and_organize_closing_data(
 
 
 def get_stocks_data(
-    browser: webdriver.Firefox, stocks: List[str]
+    browser: webdriver.Firefox, stocks: List[str] | Set[str]
 ) -> List[Dict[str, str]]:
     """Obtains basic data about the companies that issue the stocks.
 
@@ -210,7 +210,7 @@ def get_stock_data(stock: str, session: Session) -> Dict[str, str]:
     return stock_data
 
 
-def create_stock_data_session(jsessionid):
+def create_stock_data_session(jsessionid: str):
     """Create a requests session to access to the API to retrieve
     the desired data.
 
@@ -260,7 +260,9 @@ def get_bymadata_ssl_certificate():
 
 
 def create_browser(
-    download_directory: str = None, browser_binary: str = None, implicit_wait: int = 10
+    download_directory: str | None = None,
+    browser_binary: str | None = None,
+    implicit_wait: int = 10
 ) -> webdriver.Firefox:
     """Create a Selenium session of Firefox, including basic configuration,
     such as enabling headless and configuring downloads directory and the
