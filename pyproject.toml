@@ -1,11 +1,11 @@
 [tool.poetry]
 name = "bolsar_scrapper"
-version = "0.1.1"
+version = "0.1.2"
 description = "A simple program to retrieve information from bolsar website."
 authors = ["giuli635 <giulitao635@gmail.com>"]
 license = "MIT"
 readme = "README.md"
-packages = [{include = "bolsar_scrapper"}]
+packages = [{include = "bolsar_scrapper", from = "src"}]
 
 [tool.poetry.dependencies]
 python = "^3.11"

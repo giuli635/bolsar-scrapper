@@ -4,6 +4,7 @@ import os
 import tempfile
 from shutil import move
 from typing import Dict, List, Set
+from datetime import datetime
 
 from get_certificate_chain import chain_to_string, get_certificate, walk_the_chain
 from requests import ConnectionError, Session
@@ -111,7 +112,7 @@ def get_and_organize_closing_data(
     browser: webdriver.Firefox,
     source_directory: str,
     dest_directory: str,
-    date: str,
+    date: datetime,
     negotiated_amounts: bool,
 ) -> None:
     """Wrapper function to get the closing data and the negotiated amounts of a
@@ -124,9 +125,10 @@ def get_and_organize_closing_data(
         date -- day of which to obtain information.
         negotiated_amounts -- if True gets the negotiated amounts of the day.
     """
-    directory = os.path.join(dest_directory, date)
+    dateStr = date.strftime("%Y-%m-%d")
+    directory = os.path.join(dest_directory, dateStr)
     if not os.path.exists(directory):
-        browser.get(f"https://bolsar.info/cierre/cierre_{date}.html")
+        browser.get(f"https://bolsar.info/cierre/cierre_{dateStr}.html")
         titles = get_closing_data(browser)
         organize_closing_data(source_directory, directory, titles)
         if negotiated_amounts:
@@ -134,7 +136,7 @@ def get_and_organize_closing_data(
         browser.get("about:home")
     else:
         raise FileExistsError(
-            f"There is already a directory for the specified date ({date}), check the content",
+            f"There is already a directory for the specified date ({dateStr}), check the content",
         )
 
 
@@ -194,18 +196,19 @@ def get_stock_data(stock: str, session: Session) -> Dict[str, str]:
         URL_DATOS,
         json.dumps(data),
     )
-    data_response = r.json()["data"]
+    data_response = r.json()
 
     r = session.post(
         URL_NOMBRE,
         json.dumps(data),
     )
-    name_response = r.json()["data"]
+    name_response = r.json()
 
-    if name_response:
-        stock_data["nombre"] = name_response[0]["emisor"]
-    if data_response:
-        stock_data.update(data_response[0])
+    if type(name_response) is dict and name_response.get("data"):
+        stock_data["nombre"] = name_response["data"][0]["emisor"]
+        stock_data["valorNominal"] = name_response["data"][0]["valorNominal"]
+    if type(data_response) is dict and data_response.get("data"):
+        stock_data.update(data_response["data"][0])
 
     return stock_data
 
